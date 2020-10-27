@@ -4,9 +4,9 @@
 *****          Demonstration and test              *****
 ********************************************************
 
-PyARGUS 
+PyARGUS
 
-Demonstration functions written to test the proper operation of the 
+Demonstration functions written to test the proper operation of the
 direction of arrival estimation functions.
 
 TODO: Write demonstration functions for the spatial smoothing technique
@@ -24,45 +24,45 @@ def demo_single_signal(M=4, d=0.5):
     """
      Description:
      ------------
-         
-    
+
+
         Parameters:
-        -----------          
+        -----------
             M     : (int) Number of antenna elements in the antenna array. Default value: 4
             d     : (float) Distance between antenna elements. [lambda] Default value: 0.5
     """
-    
-    N = 2**12  # sample size          
+
+    N = 2**12  # sample size
     theta = 90 # Incident angle of the test signal
-    
+
     # Array response vectors of the test signal
     a = np.exp(np.arange(0,M,1)*1j*2*np.pi*d*np.cos(np.deg2rad(theta)))
-       
-    # Generate multichannel test signal 
+
+    # Generate multichannel test signal
     soi = np.random.normal(0,1,N)  # Signal of Interest
-    soi_matrix  = np.outer( soi, a).T 
-    
+    soi_matrix  = np.outer( soi, a).T
+
     # Generate multichannel uncorrelated noise
     noise = np.random.normal(0,np.sqrt(10**-10),(M,N))
-    
+
     # Create received signal
     rec_signal = soi_matrix + noise
-    
+
     ## R matrix calculation
     R = corr_matrix_estimate(rec_signal.T, imp="mem_eff")
-    
+
     # Generate scanning vectors
     array_alignment = np.arange(0, M, 1) * d
     incident_angles= np.arange(0,181,1)
     ula_scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
-      
-    # DOA estimation           
-    Bartlett= DOA_Bartlett(R, ula_scanning_vectors)    
+
+    # DOA estimation
+    Bartlett= DOA_Bartlett(R, ula_scanning_vectors)
     Capon = DOA_Capon(R, ula_scanning_vectors)
     MEM = DOA_MEM(R, ula_scanning_vectors)
     LPM = DOA_LPM(R, ula_scanning_vectors, element_select = 0)
     MUSIC = DOA_MUSIC(R, ula_scanning_vectors, signal_dimension = 1)
-    
+
     # Plot results
     axes = plt.axes()
     DOA_plot(Bartlett, incident_angles, log_scale_min = -50, axes=axes)
@@ -71,55 +71,55 @@ def demo_single_signal(M=4, d=0.5):
     DOA_plot(LPM, incident_angles, log_scale_min = -50, axes=axes)
     DOA_plot(MUSIC, incident_angles, log_scale_min = -50, axes=axes)
     axes.legend(("Bartlett","Capon","MEM","LPM","MUSIC"))
-    
-   
+
+
 def demo_coherent_signals(M = 4, d=0.5):
     """
      Description:
      ------------
-         Basic demonstration for the forward-backward averaging.         
-    
+         Basic demonstration for the forward-backward averaging.
+
         Parameters:
-        -----------          
+        -----------
             M     : (int) Number of antenna elements in the antenna array. Default value: 4
             d     : (float) Distance between antenna elements. [lambda] Default value: 0.5
     """
-    
-    N = 2**10  # sample size          
-    theta_list=[50, 80]   # Incident angles of test signal   
-       
-    # Generate multichannel test signal 
-    soi = np.random.normal(0,1,N)   # Signal of Interest        
-    
-    soi_matrix  = np.zeros((M,N), dtype=complex)    
 
-    for p in range(len(theta_list)):        
-        a = np.exp(np.arange(0,M,1)*1j*2*np.pi*d*np.cos(np.deg2rad(theta_list[p])))    
-        soi_matrix  += (np.outer( soi, a)).T 
-    
+    N = 2**10  # sample size
+    theta_list=[50, 80]   # Incident angles of test signal
+
+    # Generate multichannel test signal
+    soi = np.random.normal(0,1,N)   # Signal of Interest
+
+    soi_matrix  = np.zeros((M,N), dtype=complex)
+
+    for p in range(len(theta_list)):
+        a = np.exp(np.arange(0,M,1)*1j*2*np.pi*d*np.cos(np.deg2rad(theta_list[p])))
+        soi_matrix  += (np.outer( soi, a)).T
+
     # Generate multichannel uncorrelated noise
     noise = np.random.normal(0,np.sqrt(10**-3),(M,N))
-    
+
     # Create received signal
     rec_signal = soi_matrix + noise
-    
+
     ## R matrix calculation
     R = corr_matrix_estimate(rec_signal.T, imp="mem_eff")
-    
+
     R = forward_backward_avg(R)
-    
-    # Generate scanning vectors        
+
+    # Generate scanning vectors
     array_alignment = np.arange(0, M, 1) * d
     incident_angles= np.arange(0,181,1)
     ula_scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
-    
+
     # DOA estimation
-    Bartlett = DOA_Bartlett(R, ula_scanning_vectors)    
+    Bartlett = DOA_Bartlett(R, ula_scanning_vectors)
     Capon = DOA_Capon(R, ula_scanning_vectors)
     MEM = DOA_MEM(R, ula_scanning_vectors,  column_select = 0)
     LPM = DOA_LPM(R, ula_scanning_vectors, element_select = 1)
     MUSIC = DOA_MUSIC(R, ula_scanning_vectors, signal_dimension = 3)
-    
+
     # Plot results
     axes = plt.axes()
     DOA_plot(Bartlett, incident_angles, log_scale_min = -50, axes=axes)
@@ -132,7 +132,81 @@ def demo_coherent_signals(M = 4, d=0.5):
     for p in range(len(theta_list)):
         axes.axvline(linestyle = '--',linewidth = 2,color = 'black',x = theta_list[p])
     #axes.axvline(linestyle = '--',linewidth = 2,color = 'black',x = 115)
-    
 
-#demo_coherent_signals()
+def demo_coherent_signals_iterative(M = 8, d=0.5, i=8, P=6, noise_power=-50):
+    """
+     Description:
+     ------------
+         Basic demonstration for the forward-backward averaging, but with two
+            iterative algorithms to compare against.
+        This scenario is intended to show the strengths of the iterative
+            algorithms; expect worse performance in other situations!
+
+        Parameters:
+        -----------
+            M     : (int) Number of antenna elements in the antenna array. Default value: 4
+            d     : (float) Distance between antenna elements. [lambda] Default value: 0.5
+            i     : (int) Number of iterations for IAA-APES and SAMV. Default value: 8
+            P     : (int) Number of antenna elements in the subarrays. Default value: 6
+            noise_power: (float) Power of noise present in dB. Default value -30dB
+    """
+
+    N = 2**10  # sample size
+    theta_list=[50, 55, 80, 83]   # Incident angles of test signal
+
+    # Generate multichannel test signal
+    soi = np.random.normal(0,1,N)   # Signal of Interest
+
+    soi_matrix  = np.zeros((M,N), dtype=complex)
+
+    for p in range(len(theta_list)):
+        a = np.exp(np.arange(0,M,1)*1j*2*np.pi*d*np.cos(np.deg2rad(theta_list[p])))
+        soi_matrix  += (np.outer( soi, a)).T
+
+    # Generate multichannel uncorrelated noise
+    noise = np.random.normal(0,np.sqrt(10**(noise_power/20)),(M,N))
+
+    # Create received signal
+    rec_signal = soi_matrix + noise
+
+    ## R matrix calculation
+    R_dir = corr_matrix_estimate(rec_signal.T, imp="mem_eff")
+
+    # Calculate the forward-backward spatially smoothed correlation matrix
+    R = spatial_smoothing(rec_signal.T, P=P, direction="forward-backward")
+
+    # Generate scanning vectors of both spatially smoothed and iterative form
+    array_alignment = np.arange(0, M, 1) * d
+    incident_angles= np.arange(0,181,0.25)
+    ula_scanning_vectors = gen_ula_scanning_vectors(array_alignment, incident_angles)
+    array_alignment_ss = np.arange(0, P, 1)* d
+    scanning_vectors_ss = gen_ula_scanning_vectors(array_alignment_ss, incident_angles)
+
+
+    # DOA estimation
+    MEM = DOA_MEM(R, scanning_vectors_ss,  column_select = 0)
+    LPM = DOA_LPM(R, scanning_vectors_ss, element_select = 1)
+    MUSIC = DOA_MUSIC(R, scanning_vectors_ss, signal_dimension = 3)
+    IAA_APES1 = DOA_IAA_APES(rec_signal, ula_scanning_vectors, i, R_dir, 1)
+    IAA_APES15 = DOA_IAA_APES(rec_signal, ula_scanning_vectors, i, R_dir, 1.5)
+    SAMV1 = DOA_SAMV(rec_signal, ula_scanning_vectors, i, R_dir,1)
+    SAMV15 = DOA_SAMV(rec_signal, ula_scanning_vectors, i, R_dir,1.5)
+
+    # Plot results
+    axes = plt.axes()
+    DOA_plot(MEM, incident_angles, log_scale_min = -80,axes=axes)
+    DOA_plot(LPM, incident_angles, log_scale_min = -80, axes=axes)
+    DOA_plot(MUSIC, incident_angles, log_scale_min = -80, axes=axes)
+    DOA_plot(IAA_APES1, incident_angles, log_scale_min = -80, axes=axes)
+    DOA_plot(IAA_APES15, incident_angles, log_scale_min = -80, axes=axes)
+    DOA_plot(SAMV15, incident_angles, log_scale_min = -80, axes=axes)
+    axes.legend(("MEM","LPM","MUSIC","IAA-APES c=1","IAA-APES c=1.5","SAMV c=1.5"))
+    # Mark nominal incident angles
+    for p in range(len(theta_list)):
+        axes.axvline(linestyle = '--',linewidth = 2,color = 'black',x = theta_list[p])
+    #axes.axvline(linestyle = '--',linewidth = 2,color = 'black',x = 115)
+
+
 #demo_single_signal(M=4)
+#demo_coherent_signals_iterative()
+#plt.show()

@@ -19,7 +19,7 @@ Named after Argus the giant from the greek mitology who had hundreds of eyes.
 
 ### Implemented Algorithms
 
-- Beamforiming:
+- Beamforming:
     - Fixed beamformers:
         - Maximum Signal to Interference Ratio beamformer
         - Maximum Signal to Interference Ratio beamformer with Godara's method
@@ -35,6 +35,8 @@ Named after Argus the giant from the greek mitology who had hundreds of eyes.
         - Burg's Maximum Entropy Method (MEM)
         - Multiple Signal Classification (MUSIC)
         - Multi Dimension MUSIC (MD-MUSIC)
+        - Iterative Adaptive Amplitude and Phase Estimation (IAA-APES)
+        - Iterative Sparse Asyptompic Minimum Variance Approach (SAMV)
 
     - Util functions:
         - Spatial correlation matrix estimation using the sample average technique
